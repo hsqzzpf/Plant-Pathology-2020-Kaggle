@@ -16,7 +16,7 @@ from model import init_model
 from loss import get_loss_fn
 from dataset import ppDataset
 from parser_util import get_parser
-from utils import CenterLoss, AverageMeter, TopKAccuracyMetric, ModelCheckpoint, batch_augmentfrom, get_transform
+from utils import CenterLoss, AverageMeter, TopKAccuracyMetric, ModelCheckpoint, batch_augment, get_transform
 
 
 cross_entropy_loss = nn.CrossEntropyLoss()
@@ -46,7 +46,7 @@ def train(model, tr_dataloader, criterion, optimizer, epoch, options=None,featur
     for idx, (inputs, labels, _) in enumerate(tr_dataloader):
         inputs = inputs.to(device)
         labels = labels.to(device)
-        labels = labels.squeeze(-1)
+        #labels = labels.squeeze(-1)
         optimizer.zero_grad()
         model.zero_grad()
 
@@ -55,8 +55,9 @@ def train(model, tr_dataloader, criterion, optimizer, epoch, options=None,featur
 
             # Update Feature Center
             
+           # if len(labels.shape
             feature_center_batch = F.normalize(feature_center[labels], dim=-1)
-            feature_center[labels] += 0.05 * (feature_matrix.detach() - feature_center[labels])
+            feature_center[labels] += 0.05 * (feature_matrix.detach() - feature_center_batch)
 
             ##################################
             # Attention Cropping
@@ -118,7 +119,7 @@ def validation(model, val_dataloader, criterion, epoch, options=None):
         for inputs, labels, _ in val_dataloader:
             inputs = inputs.to(device)
             labels = labels.to(device)
-            labels = labels.squeeze(-1)
+            #labels = labels.squeeze(-1)
                     
             model.zero_grad()
 
@@ -131,7 +132,13 @@ def validation(model, val_dataloader, criterion, epoch, options=None):
 
                 y_pred = (y_pred_raw + y_pred_crop) / 2.
                 outputs = y_pred
-                loss = cross_entropy_loss(y_pred, labels)
+                #print("label shape: {}".format(len(labels.shape)))
+                if len(labels.shape) == 0:
+                    print("Error")
+                 
+                    loss = torch.tensor(0)
+                else:
+                    loss = cross_entropy_loss(y_pred, labels)
             else:
 
                 outputs = model(inputs)
@@ -242,9 +249,9 @@ if __name__ == "__main__":
     tr_df = tr_df.reset_index(drop=True)
     te_df = pd.read_csv(test_csv_path)
     
-    tr_dataset = ppDataset(tr_df, images_dir, return_labels = True, transforms = get_transform(input_size, "train"))
-    val_dataset = ppDataset(val_df, images_dir, return_labels = True, transforms = get_transform(input_size, "val"))
-    te_dataset = ppDataset(te_df, images_dir, return_labels = False, transforms = get_transform(input_size, "test"))
+    tr_dataset = ppDataset(tr_df, images_dir, return_labels = True, transforms = get_transform((input_size,input_size), "train"))
+    val_dataset = ppDataset(val_df, images_dir, return_labels = True, transforms = get_transform((input_size,input_size), "val"))
+    te_dataset = ppDataset(te_df, images_dir, return_labels = False, transforms = get_transform((input_size,input_size), "test"))
     
     tr_dataloader = DataLoader(tr_dataset, batch_size=batch_size, shuffle=True)
     val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True)
