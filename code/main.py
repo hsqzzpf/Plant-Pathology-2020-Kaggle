@@ -111,7 +111,7 @@ def write_csv(model, te_dataset, submission_df_path):
     with torch.no_grad():
         for inputs in te_dataloader:
             inputs = inputs.to(device)
-            outputs = model_ft(inputs)
+            outputs = model(inputs)
 
             if test_pred is None:
                 test_pred = outputs.data.cpu()
