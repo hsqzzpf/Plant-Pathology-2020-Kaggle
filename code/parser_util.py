@@ -14,7 +14,7 @@ def get_parser():
     parser.add_argument('--batch_size',
                         type=int,
                         help='batch_size',
-                        default=64)
+                        default=32)
 
     parser.add_argument('--data_root',
                         type=str,

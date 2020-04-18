@@ -1,7 +1,7 @@
 import torch.nn as nn
 from torchvision import transforms, models
 
-from WSDAN import WSDAN
+from models import WSDAN
 
 def init_model(model_idx, num_classes, use_pretrained):
     """

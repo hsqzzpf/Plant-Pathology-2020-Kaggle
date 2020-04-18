@@ -51,7 +51,7 @@ def train(model, tr_dataloader, criterion, optimizer, epoch, options=None):
         model.zero_grad()
 
         if options is not None and options.model==4:
-             y_pred_raw, feature_matrix, attention_map = model(inputs)
+            y_pred_raw, feature_matrix, attention_map = model(inputs)
 
             # Update Feature Center
             feature_center_batch = F.normalize(feature_center[labels], dim=-1)
