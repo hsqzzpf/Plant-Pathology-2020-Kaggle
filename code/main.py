@@ -60,8 +60,8 @@ def train(model, tr_dataloader, criterion, optimizer, epoch):
         running_loss += batch_loss
         running_corrects += batch_corrects
 
-        if idx % 100 == 1:
-            print('[Train]Epoch: {}, idx: {}, Loss: {:.4f} Acc: {:.4f}'.format(epoch, idx, batch_loss/len(inputs), batch_corrects/len(inputs)))
+        if idx % 9 == 1:
+            print('[Train]Epoch: {}, idx: {}, Loss: {:.4f} Acc: {:.4f}'.format(epoch, idx, batch_loss/len(inputs), batch_corrects.float()/len(inputs)))
 
     epoch_loss = running_loss / len(tr_dataloader.dataset)
     epoch_acc = running_corrects.double() / len(tr_dataloader.dataset)
@@ -119,7 +119,7 @@ def write_csv(model, te_dataset, submission_df_path):
                 test_pred = torch.cat((test_pred, outputs.data.cpu()), dim=0)
 
     test_pred = torch.softmax(test_pred, dim=1, dtype=float)
-    submission_df[['healthy', 'multiple_diseases', 'rust', 'scab']] = test_preds
+    submission_df[['healthy', 'multiple_diseases', 'rust', 'scab']] = test_pred
 
     submission_df.to_csv('submission_3.csv', index=False)
 
