@@ -9,13 +9,13 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from torchvision import transforms, models
-from torch.utils.data import Dataset, DataLsource activate pytorch_p36oader
+from torch.utils.data import Dataset, DataLoader
 from sklearn.model_selection import train_test_split
 
 from model import init_model
 from loss import get_loss_fn
 from dataset import ppDataset
-from parse_untils import get_parser
+from parser_util import get_parser
 
 
 
@@ -158,7 +158,7 @@ if __name__ == "__main__":
         ])
 }
 
-    model, input_size = init_model(model_name, num_classes, feature_extract, use_pretrained=True)
+    model, input_size = init_model(model_idx, num_classes, use_pretrained=True)
     criterion = get_loss_fn()
     optimizer = torch.optim.AdamW(model.parameters(), lr = 2e-5, eps = 1e-8 )
 

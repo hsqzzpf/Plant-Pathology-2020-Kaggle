@@ -2,7 +2,7 @@ from torchvision import transforms, models
 import torch.nn as nn
 
 
-def init_model(model_idx, num_classes, features_extract, use_pretrained):
+def init_model(model_idx, num_classes, use_pretrained):
     """
     model_idx:
         0 -> resnext
