@@ -9,11 +9,13 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from torchvision import transforms, models
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLsource activate pytorch_p36oader
 from sklearn.model_selection import train_test_split
+
 from model import init_model
 from loss import get_loss_fn
 from dataset import ppDataset
+from parse_untils import get_parser
 
 
 
@@ -118,17 +120,19 @@ def write_csv(model, te_dataset, submission_df_path):
 
 
 if __name__ == "__main__":
-    model_name = 'resnext'
-    num_classes = 4
-    batch_size = 16
-    num_epoch = 2
-    num_dev_samples = 0
-    feature_extract = False
-    pre_trained = True
-    num_cv_folds = 5
+    options = get_parser().parse_args()
+    model_idx = options.model
+    batch_size = options.batch_size
+    num_epoch = options.epochs
+    data_root = options.data_root
+
+    train_csv_path = data_root + "train.csv"
+    test_csv_path = data_root + "test.csv"
+    images_dir = data_root + "images/"
+    submission_df_path = data_root + "sample_submission.csv"
     
-    train_csv_path = "../data/train.csv"
-    test_csv_path = "../data/test.csv"
+    num_classes = 4
+    num_cv_folds = 5
 
     data_transforms = {
     'train': transforms.Compose([
@@ -154,7 +158,7 @@ if __name__ == "__main__":
         ])
 }
 
-    model, input_size = init_model(model_name, num_classes, feature_extract, use_pretrained=pre_trained)
+    model, input_size = init_model(model_name, num_classes, feature_extract, use_pretrained=True)
     criterion = get_loss_fn()
     optimizer = torch.optim.AdamW(model.parameters(), lr = 2e-5, eps = 1e-8 )
 
@@ -164,7 +168,6 @@ if __name__ == "__main__":
     tr_df = tr_df.reset_index(drop=True)
     te_df = pd.read_csv(test_csv_path)
     
-    images_dir = "../data/images/"
     tr_dataset = ppDataset(tr_df, images_dir, return_labels = True, transforms = data_transforms['train'])
     val_dataset = ppDataset(val_df, images_dir, return_labels = True, transforms = data_transforms['val'])
     te_dataset = ppDataset(te_df, images_dir, return_labels = False, transforms = data_transforms['test'])
@@ -185,6 +188,6 @@ if __name__ == "__main__":
         train_accu_ls.append(train_acc)
         valid_loss_ls.append(val_loss)
         valid_accu_ls.append(val_acc)
-    submission_df_path = "../data/sample_submission.csv"
+    
     write_csv(model, te_dataset, submission_df_path)
 
