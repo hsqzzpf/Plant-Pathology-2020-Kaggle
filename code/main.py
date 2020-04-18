@@ -117,9 +117,21 @@ def write_csv(model, te_dataset, submission_df_path):
 
 
 if __name__ == "__main__":
-	data_transforms = {
-	'train': transforms.Compose([
-		transforms.Resize((224, 224)),
+    model_name = 'resnext'
+    num_classes = 4
+    batch_size = 16
+    num_epochs = 2
+    num_dev_samples = 0
+    feature_extract = False
+    pre_trained = True
+    num_cv_folds = 5
+    
+    train_csv_path = "../data/train.csv"
+    test_csv_path = "../data/test.csv"
+
+    data_transforms = {
+    'train': transforms.Compose([
+        transforms.Resize((224, 224)),
 		transforms.Pad(50, padding_mode='reflect'),        
 		transforms.RandomHorizontalFlip(p=0.5),
 		transforms.RandomVerticalFlip(p=0.5),
@@ -154,7 +166,10 @@ if __name__ == "__main__":
 	tr_dataset = ppDataset(tr_df, images_dir, return_labels = True, transforms = data_transforms['train'])
 	val_dataset = ppDataset(val_df, images_dir, return_labels = True, transforms = data_transforms['val'])
 	te_dataset = ppDataset(te_df, images_dir, return_labels = False, transforms = data_transforms['test'])
-
+    
+    tr_dataloader = DataLoader(tr_dataset, batch_size=batch_size, shuffle=True)
+    val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True)
+    
 	train_loss_ls = []
 	valid_loss_ls = []
 	train_accu_ls = []
@@ -168,5 +183,6 @@ if __name__ == "__main__":
 		train_accu_ls.append(train_acc)
 		valid_loss_ls.append(val_loss)
 		valid_accu_ls.append(val_acc)
+    submission_df_path = "../data/sample_submission.csv"
 	write_csv(model, te_dataset, submission_df_path)
 
