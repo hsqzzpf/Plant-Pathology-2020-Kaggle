@@ -25,6 +25,7 @@ class ppDataset(Dataset):
         if self.return_labels:
             # label = torch.tensor(self.df.loc[idx, ['healthy', 'multiple_diseases', 'rust', 'scab']]).unsqueeze(1)
             label = torch.tensor(self.df.loc[idx, ['healthy', 'multiple_diseases', 'rust', 'scab']]).unsqueeze(-1)
-            return image, label, self.label_map_reverse[label.squeeze(1).numpy().argmax()]
+            label_flatten = label.argmax()
+            return image, label_flatten, self.label_map_reverse[label.squeeze(1).numpy().argmax()]
         else:
             return image

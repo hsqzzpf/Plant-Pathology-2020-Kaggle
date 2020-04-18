@@ -54,14 +54,15 @@ def train(model, tr_dataloader, criterion, optimizer, epoch, options=None,featur
             y_pred_raw, feature_matrix, attention_map = model(inputs)
 
             # Update Feature Center
+            
             feature_center_batch = F.normalize(feature_center[labels], dim=-1)
-            feature_center[labels] += 0.05 * (feature_matrix.detach() - feature_center_batch)
+            feature_center[labels] += 0.05 * (feature_matrix.detach() - feature_center[labels])
 
             ##################################
             # Attention Cropping
             ##################################
             with torch.no_grad():
-                crop_images = batch_augment(X, attention_map[:, :1, :, :], mode='crop', theta=(0.4, 0.6), padding_ratio=0.1)
+                crop_images = batch_augment(inputs, attention_map[:, :1, :, :], mode='crop', theta=(0.4, 0.6), padding_ratio=0.1)
 
             # crop images forward
             y_pred_crop, _, _ = model(crop_images)
@@ -70,11 +71,11 @@ def train(model, tr_dataloader, criterion, optimizer, epoch, options=None,featur
             # Attention Dropping
             ##################################
             with torch.no_grad():
-                drop_images = batch_augment(X, attention_map[:, 1:, :, :], mode='drop', theta=(0.2, 0.5))
+                drop_images = batch_augment(inputs, attention_map[:, 1:, :, :], mode='drop', theta=(0.2, 0.5))
 
             # drop images forward
             y_pred_drop, _, _ = model(drop_images)
-
+            outputs = (y_pred_raw + y_pred_crop + y_pred_drop)/3.
             # loss
             loss = cross_entropy_loss(y_pred_raw, labels) / 3. + \
                          cross_entropy_loss(y_pred_crop, labels) / 3. + \
@@ -90,7 +91,7 @@ def train(model, tr_dataloader, criterion, optimizer, epoch, options=None,featur
         optimizer.step()
 
         batch_loss = loss.item() * inputs.size(0)
-        batch_corrects = torch.sum(labels.argmax(dim=1) == outputs.argmax(dim=1))
+        batch_corrects = torch.sum(labels == outputs.argmax(dim=1))
                 
         running_loss += batch_loss
         running_corrects += batch_corrects
@@ -129,7 +130,7 @@ def validation(model, val_dataloader, criterion, epoch, options=None):
                 y_pred_crop, _, _ = model(crop_images)
 
                 y_pred = (y_pred_raw + y_pred_crop) / 2.
-
+                outputs = y_pred
                 loss = cross_entropy_loss(y_pred, labels)
             else:
 
@@ -140,7 +141,7 @@ def validation(model, val_dataloader, criterion, epoch, options=None):
 
                     
             running_loss += loss.item() * inputs.size(0)
-            running_corrects += torch.sum(labels.argmax(dim=1) == outputs.argmax(dim=1))
+            running_corrects += torch.sum(labels == outputs.argmax(dim=1))
 
     epoch_loss = running_loss / len(val_dataloader.dataset)
     epoch_acc = running_corrects.double() / len(val_dataloader.dataset)
@@ -169,7 +170,7 @@ def write_csv(model, te_dataset, submission_df_path, options=None):
                 y_pred_crop, _, _ = model(crop_images)
 
                 y_pred = (y_pred_raw + y_pred_crop) / 2.
-
+                outputs = y_pred
             else:
 
                 outputs = model(inputs)
@@ -227,9 +228,12 @@ if __name__ == "__main__":
 }
     device = get_device()
     model, input_size = init_model(model_idx, num_classes, use_pretrained=True)
-    feature_center = torch.zeros(num_classes, 32 * model.num_features).to(device)
+    feature_center = torch.zeros(4, 32 * model.num_features).to(device)
     criterion = get_loss_fn()
-    optimizer = torch.optim.AdamW(model.parameters(), lr = 2e-5, eps = 1e-8 )
+    # optimizer = torch.optim.AdamW(model.parameters(), lr = 2e-5, eps = 1e-8 )
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0.9, weight_decay=1e-5)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=2, gamma=0.95)
+
 
     tr_df_all = pd.read_csv(train_csv_path)
     tr_df, val_df = train_test_split(tr_df_all, test_size = 0.4)
@@ -257,6 +261,7 @@ if __name__ == "__main__":
         train_accu_ls.append(train_acc)
         valid_loss_ls.append(val_loss)
         valid_accu_ls.append(val_acc)
+        scheduler.step()
     
     write_csv(model, te_dataset, submission_df_path, options)
 
