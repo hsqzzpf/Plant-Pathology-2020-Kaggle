@@ -16,7 +16,7 @@ from model import init_model
 from loss import get_loss_fn
 from dataset import ppDataset
 from parser_util import get_parser
-from utils import CenterLoss, AverageMeter, TopKAccuracyMetric, ModelCheckpoint, batch_augment
+from utils import CenterLoss, AverageMeter, TopKAccuracyMetric, ModelCheckpoint, batch_augmentfrom, get_transform
 
 
 cross_entropy_loss = nn.CrossEntropyLoss()
@@ -184,7 +184,7 @@ def write_csv(model, te_dataset, submission_df_path, options=None):
     test_pred = torch.softmax(test_pred, dim=1, dtype=float)
     submission_df[['healthy', 'multiple_diseases', 'rust', 'scab']] = test_pred
 
-    submission_df.to_csv('submission_3.csv', index=False)
+    submission_df.to_csv(options.output_root+'submission.csv', index=False)
 
 
 
@@ -194,6 +194,7 @@ if __name__ == "__main__":
     batch_size = options.batch_size
     num_epoch = options.epochs
     data_root = options.data_root
+    input_size = options.input_size
 
     train_csv_path = data_root + "train.csv"
     test_csv_path = data_root + "test.csv"
@@ -203,31 +204,31 @@ if __name__ == "__main__":
     num_classes = 4
     num_cv_folds = 5
 
-    data_transforms = {
-    'train': transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.Pad(50, padding_mode='reflect'),        
-        transforms.RandomHorizontalFlip(p=0.5),
-        transforms.RandomVerticalFlip(p=0.5),
-        transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.05, hue=0.05),
-        transforms.RandomAffine(degrees=[0,45]),
-        transforms.CenterCrop(224),
-        transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-        ]),
-    'val': transforms.Compose([
-        transforms.Resize((224, 244)),
-        transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
-        ]),
-    'test': transforms.Compose([
-        transforms.Resize((224, 244)),
-        transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
-        ])
-}
+#     data_transforms = {
+#     'train': transforms.Compose([
+#         transforms.Resize((224, 224)),
+#         transforms.Pad(50, padding_mode='reflect'),        
+#         transforms.RandomHorizontalFlip(p=0.5),
+#         transforms.RandomVerticalFlip(p=0.5),
+#         transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.05, hue=0.05),
+#         transforms.RandomAffine(degrees=[0,45]),
+#         transforms.CenterCrop(224),
+#         transforms.ToTensor(),
+#         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+#         ]),
+#     'val': transforms.Compose([
+#         transforms.Resize((224, 244)),
+#         transforms.ToTensor(),
+#         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+#         ]),
+#     'test': transforms.Compose([
+#         transforms.Resize((224, 244)),
+#         transforms.ToTensor(),
+#         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+#         ])
+# }
     device = get_device()
-    model, input_size = init_model(model_idx, num_classes, use_pretrained=True)
+    model, _ = init_model(model_idx, num_classes, use_pretrained=True)
     feature_center = torch.zeros(4, 32 * model.num_features).to(device)
     criterion = get_loss_fn()
     # optimizer = torch.optim.AdamW(model.parameters(), lr = 2e-5, eps = 1e-8 )
@@ -241,9 +242,9 @@ if __name__ == "__main__":
     tr_df = tr_df.reset_index(drop=True)
     te_df = pd.read_csv(test_csv_path)
     
-    tr_dataset = ppDataset(tr_df, images_dir, return_labels = True, transforms = data_transforms['train'])
-    val_dataset = ppDataset(val_df, images_dir, return_labels = True, transforms = data_transforms['val'])
-    te_dataset = ppDataset(te_df, images_dir, return_labels = False, transforms = data_transforms['test'])
+    tr_dataset = ppDataset(tr_df, images_dir, return_labels = True, transforms = get_transform(input_size, "train"))
+    val_dataset = ppDataset(val_df, images_dir, return_labels = True, transforms = get_transform(input_size, "val"))
+    te_dataset = ppDataset(te_df, images_dir, return_labels = False, transforms = get_transform(input_size, "test"))
     
     tr_dataloader = DataLoader(tr_dataset, batch_size=batch_size, shuffle=True)
     val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True)
@@ -262,6 +263,11 @@ if __name__ == "__main__":
         valid_loss_ls.append(val_loss)
         valid_accu_ls.append(val_acc)
         scheduler.step()
-    
+
+    for i in range(5):
+        train(model, val_dataloader, criterion, optimizer, i, options, feature_center)
+    out_root = options.output_root
+    torch.save(model.state_dict(), out_root + 'params.pkl')
+
     write_csv(model, te_dataset, submission_df_path, options)
 

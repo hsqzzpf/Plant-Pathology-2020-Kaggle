@@ -36,5 +36,10 @@ def get_parser():
                         help='output file holder for submission csv',
                         default="../output/")
 
+    parser.add_argument('--input_size',
+                        type=int,
+                        help='output file holder for submission csv',
+                        default=448)
+
 
     return parser
