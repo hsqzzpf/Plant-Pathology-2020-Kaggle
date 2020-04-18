@@ -16,7 +16,11 @@ from model import init_model
 from loss import get_loss_fn
 from dataset import ppDataset
 from parser_util import get_parser
+from utils import CenterLoss, AverageMeter, TopKAccuracyMetric, ModelCheckpoint, batch_augment
 
+
+cross_entropy_loss = nn.CrossEntropyLoss()
+center_loss = CenterLoss()
 
 
 def get_device():
@@ -30,7 +34,7 @@ def get_device():
     return device
 
 
-def train(model, tr_dataloader, criterion, optimizer, epoch):
+def train(model, tr_dataloader, criterion, optimizer, epoch, options=None):
     since = time.time()
     device = get_device()
     model.train()
@@ -43,13 +47,44 @@ def train(model, tr_dataloader, criterion, optimizer, epoch):
         inputs = inputs.to(device)
         labels = labels.to(device)
         labels = labels.squeeze(-1)
-                
         optimizer.zero_grad()
         model.zero_grad()
 
-        outputs = model(inputs)
-        loss = criterion(outputs, labels)
-        _, preds = torch.max(outputs, 1)
+        if options is not None and options.model==4:
+             y_pred_raw, feature_matrix, attention_map = model(inputs)
+
+            # Update Feature Center
+            feature_center_batch = F.normalize(feature_center[labels], dim=-1)
+            feature_center[y] += config.beta * (feature_matrix.detach() - feature_center_batch)
+
+            ##################################
+            # Attention Cropping
+            ##################################
+            with torch.no_grad():
+                crop_images = batch_augment(X, attention_map[:, :1, :, :], mode='crop', theta=(0.4, 0.6), padding_ratio=0.1)
+
+            # crop images forward
+            y_pred_crop, _, _ = model(crop_images)
+
+            ##################################
+            # Attention Dropping
+            ##################################
+            with torch.no_grad():
+                drop_images = batch_augment(X, attention_map[:, 1:, :, :], mode='drop', theta=(0.2, 0.5))
+
+            # drop images forward
+            y_pred_drop, _, _ = model(drop_images)
+
+            # loss
+            loss = cross_entropy_loss(y_pred_raw, labels) / 3. + \
+                         cross_entropy_loss(y_pred_crop, labels) / 3. + \
+                         cross_entropy_loss(y_pred_drop, labels) / 3. + \
+                         center_loss(feature_matrix, feature_center_batch)
+        else:
+
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
+            _, preds = torch.max(outputs, 1)
 
         loss.backward()
         optimizer.step()
@@ -71,7 +106,7 @@ def train(model, tr_dataloader, criterion, optimizer, epoch):
     return epoch_acc, epoch_loss
 
 
-def validation(model, val_dataloader, criterion, epoch):
+def validation(model, val_dataloader, criterion, epoch, options=None):
     device = get_device()
     model.to(device)
     model.eval()
@@ -86,9 +121,23 @@ def validation(model, val_dataloader, criterion, epoch):
                     
             model.zero_grad()
 
-            outputs = model(inputs)
-            loss = criterion(outputs, labels)
-            _, preds = torch.max(outputs, 1)
+            if options is not None and options.model==4:
+
+                y_pred_raw, _, attention_map = model(inputs)
+
+                crop_images = batch_augment(inputs, attention_map, mode='crop', theta=0.1, padding_ratio=0.05)
+                y_pred_crop, _, _ = model(crop_images)
+
+                y_pred = (y_pred_raw + y_pred_crop) / 2.
+
+                loss = cross_entropy_loss(y_pred, labels)
+            else:
+
+                outputs = model(inputs)
+                loss = criterion(outputs, labels)
+                _, preds = torch.max(outputs, 1)
+
+
                     
             running_loss += loss.item() * inputs.size(0)
             running_corrects += torch.sum(labels.argmax(dim=1) == outputs.argmax(dim=1))
@@ -100,7 +149,7 @@ def validation(model, val_dataloader, criterion, epoch):
     return epoch_acc, epoch_loss
 
 
-def write_csv(model, te_dataset, submission_df_path):
+def write_csv(model, te_dataset, submission_df_path, options=None):
     print("Generating prediction...")
     device = get_device()
     te_dataloader = DataLoader(te_dataset, batch_size=batch_size, shuffle=False)
@@ -111,7 +160,20 @@ def write_csv(model, te_dataset, submission_df_path):
     with torch.no_grad():
         for inputs in te_dataloader:
             inputs = inputs.to(device)
-            outputs = model(inputs)
+
+            if options is not None and options.model==4:
+
+                y_pred_raw, _, attention_map = model(inputs)
+
+                crop_images = batch_augment(inputs, attention_map, mode='crop', theta=0.1, padding_ratio=0.05)
+                y_pred_crop, _, _ = model(crop_images)
+
+                y_pred = (y_pred_raw + y_pred_crop) / 2.
+
+            else:
+
+                outputs = model(inputs)
+                _, preds = torch.max(outputs, 1)
 
             if test_pred is None:
                 test_pred = outputs.data.cpu()
@@ -187,13 +249,13 @@ if __name__ == "__main__":
     valid_accu_ls = []
 
     for i in range(1, num_epoch+1):
-        train_acc, train_loss = train(model, tr_dataloader, criterion, optimizer, i)
-        val_acc, val_loss = validation(model, val_dataloader, criterion, i)
+        train_acc, train_loss = train(model, tr_dataloader, criterion, optimizer, i, options)
+        val_acc, val_loss = validation(model, val_dataloader, criterion, i, options)
 
         train_loss_ls.append(train_loss)
         train_accu_ls.append(train_acc)
         valid_loss_ls.append(val_loss)
         valid_accu_ls.append(val_acc)
     
-    write_csv(model, te_dataset, submission_df_path)
+    write_csv(model, te_dataset, submission_df_path, options)
 

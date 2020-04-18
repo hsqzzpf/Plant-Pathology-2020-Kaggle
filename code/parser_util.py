@@ -9,7 +9,7 @@ def get_parser():
     parser.add_argument('--model',
                         type=int,
                         help='models to choose',
-                        default=0)
+                        default=4)
 
     parser.add_argument('--batch_size',
                         type=int,
@@ -26,10 +26,15 @@ def get_parser():
                         help='number of epochs to train for',
                         default=5)
 
-    parser.add_argument('-lr', '--learning_rate',
+    parser.add_argument('--learning_rate',
                         type=float,
                         help='learning rate for the model, default=0.001',
                         default=0.001)
+
+    parser.add_argument('--output_root',
+                        type=str,
+                        help='output file holder for submission csv',
+                        default="../output/")
 
 
     return parser

@@ -1,6 +1,7 @@
-from torchvision import transforms, models
 import torch.nn as nn
+from torchvision import transforms, models
 
+from WSDAN import WSDAN
 
 def init_model(model_idx, num_classes, use_pretrained):
     """
@@ -9,11 +10,7 @@ def init_model(model_idx, num_classes, use_pretrained):
         1 -> resnet152
         2 -> resnet50
         3 -> resnet101
-        4 -> resnext
-        0 -> resnext
-        0 -> resnext
-        0 -> resnext
-        0 -> resnext
+        4 -> WSDAN: Weakly Supervised Data Augmentation Network
     """
     model_ft = None
     input_size = 0
@@ -27,6 +24,8 @@ def init_model(model_idx, num_classes, use_pretrained):
         model_ft = models.resnet50(pretrained=use_pretrained)
     elif model_idx == 3:
         model_ft = models.resnet101(pretrained=use_pretrained)
+    elif model_idx == 4:
+        model = WSDAN(num_classes=num_classes, M=config.num_attentions, net=config.net, pretrained=True)
     else:
         print('Invalid model idx, exiting. . .') 
         exit();
