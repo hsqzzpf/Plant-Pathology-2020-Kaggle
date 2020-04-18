@@ -9,8 +9,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from torchvision import transforms, models
-from torch.utils.data import Dataset, Dataloader
-
+from torch.utils.data import Dataset, DataLoader
+from sklearn.model_selection import train_test_split
 from model import init_model
 from loss import get_loss_fn
 from dataset import ppDataset
@@ -94,6 +94,7 @@ def validation(model, val_dataloader, criterion, epoch):
 
 def write_csv(model, te_dataset, submission_df_path):
     print("Generating prediction...")
+    device = get_device()
     te_dataloader = DataLoader(te_dataset, batch_size=batch_size, shuffle=False)
     submission_df = pd.read_csv(submission_df_path)
 
@@ -120,7 +121,7 @@ if __name__ == "__main__":
     model_name = 'resnext'
     num_classes = 4
     batch_size = 16
-    num_epochs = 2
+    num_epoch = 2
     num_dev_samples = 0
     feature_extract = False
     pre_trained = True
@@ -153,9 +154,9 @@ if __name__ == "__main__":
         ])
 }
 
-    model_ft, input_size = init_model(model_name, num_classes, feature_extract, use_pretrained=pre_trained)
+    model, input_size = init_model(model_name, num_classes, feature_extract, use_pretrained=pre_trained)
     criterion = get_loss_fn()
-    optimizer = torch.optim.AdamW(params_to_update, lr = 2e-5, eps = 1e-8 )
+    optimizer = torch.optim.AdamW(model.parameters(), lr = 2e-5, eps = 1e-8 )
 
     tr_df_all = pd.read_csv(train_csv_path)
     tr_df, val_df = train_test_split(tr_df_all, test_size = 0.4)
@@ -163,6 +164,7 @@ if __name__ == "__main__":
     tr_df = tr_df.reset_index(drop=True)
     te_df = pd.read_csv(test_csv_path)
     
+    images_dir = "../data/images/"
     tr_dataset = ppDataset(tr_df, images_dir, return_labels = True, transforms = data_transforms['train'])
     val_dataset = ppDataset(val_df, images_dir, return_labels = True, transforms = data_transforms['val'])
     te_dataset = ppDataset(te_df, images_dir, return_labels = False, transforms = data_transforms['test'])
@@ -176,8 +178,8 @@ if __name__ == "__main__":
     valid_accu_ls = []
 
     for i in range(1, num_epoch+1):
-        train_acc, train_loss = train(model, tr_dataloader, criterion, optimizer, epoch)
-        val_acc, val_loss = validation(model, val_dataloader, criterion, epoch)
+        train_acc, train_loss = train(model, tr_dataloader, criterion, optimizer, i)
+        val_acc, val_loss = validation(model, val_dataloader, criterion, i)
 
         train_loss_ls.append(train_loss)
         train_accu_ls.append(train_acc)

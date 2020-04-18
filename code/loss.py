@@ -10,8 +10,8 @@ class DenseCrossEntropy(nn.Module):
         logits = logits.float()
         labels = labels.float()
 
-        log_probs = F.log_softmax(logit, dim=-1)
-        loss = -label * log_probs
+        log_probs = F.log_softmax(logits, dim=-1)
+        loss = -labels * log_probs
         loss = loss.sum(-1)
         return loss.mean()
 

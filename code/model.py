@@ -1,6 +1,8 @@
 from torchvision import transforms, models
+import torch.nn as nn
 
-def initialize_model(model_name, num_classes, features_extract, use_pretrained):
+
+def init_model(model_name, num_classes, features_extract, use_pretrained):
     model_ft = None
     input_size = 0
     valid_model_names = ['resnet101', 'resnet152', 'resnet50', 'resnext']
