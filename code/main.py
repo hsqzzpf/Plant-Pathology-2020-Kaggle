@@ -34,7 +34,7 @@ def get_device():
     return device
 
 
-def train(model, tr_dataloader, criterion, optimizer, epoch, options=None):
+def train(model, tr_dataloader, criterion, optimizer, epoch, options=None,feature_center=None):
     since = time.time()
     device = get_device()
     model.train()
@@ -55,7 +55,7 @@ def train(model, tr_dataloader, criterion, optimizer, epoch, options=None):
 
             # Update Feature Center
             feature_center_batch = F.normalize(feature_center[labels], dim=-1)
-            feature_center[y] += config.beta * (feature_matrix.detach() - feature_center_batch)
+            feature_center[labels] += 0.05 * (feature_matrix.detach() - feature_center_batch)
 
             ##################################
             # Attention Cropping
@@ -225,8 +225,9 @@ if __name__ == "__main__":
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
         ])
 }
-
+    device = get_device()
     model, input_size = init_model(model_idx, num_classes, use_pretrained=True)
+    feature_center = torch.zeros(num_classes, 32 * model.num_features).to(device)
     criterion = get_loss_fn()
     optimizer = torch.optim.AdamW(model.parameters(), lr = 2e-5, eps = 1e-8 )
 
@@ -249,7 +250,7 @@ if __name__ == "__main__":
     valid_accu_ls = []
 
     for i in range(1, num_epoch+1):
-        train_acc, train_loss = train(model, tr_dataloader, criterion, optimizer, i, options)
+        train_acc, train_loss = train(model, tr_dataloader, criterion, optimizer, i, options, feature_center)
         val_acc, val_loss = validation(model, val_dataloader, criterion, i, options)
 
         train_loss_ls.append(train_loss)

@@ -26,6 +26,7 @@ def init_model(model_idx, num_classes, use_pretrained):
         model_ft = models.resnet101(pretrained=use_pretrained)
     elif model_idx == 4:
         model = WSDAN(num_classes=num_classes, pretrained=True)
+        return model, 224
     else:
         print('Invalid model idx, exiting. . .') 
         exit();
