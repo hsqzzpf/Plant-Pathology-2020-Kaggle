@@ -22,10 +22,10 @@ from parser_util import get_parser
 def get_device():
     if torch.cuda.is_available():
         device = torch.device("cuda")
-        print('There are %d GPU(s) available.' % torch.cuda.device_count())
-        print('We will use the GPU:', torch.cuda.get_device_name(0))
+        # print('There are %d GPU(s) available.' % torch.cuda.device_count())
+        # print('We will use the GPU:', torch.cuda.get_device_name(0))
     else:
-        print('No GPU available, using the CPU instead.')
+        # print('No GPU available, using the CPU instead.')
         device = torch.device("cpu")
     return device
 
@@ -39,7 +39,7 @@ def train(model, tr_dataloader, criterion, optimizer, epoch):
 
     running_loss = 0.
     running_corrects = 0.
-    for inputs, labels, _ in tr_dataloader:
+    for idx, (inputs, labels, _) in enumerate(tr_dataloader):
         inputs = inputs.to(device)
         labels = labels.to(device)
         labels = labels.squeeze(-1)
@@ -53,9 +53,15 @@ def train(model, tr_dataloader, criterion, optimizer, epoch):
 
         loss.backward()
         optimizer.step()
+
+        batch_loss = loss.item() * inputs.size(0)
+        batch_corrects = torch.sum(labels.argmax(dim=1) == outputs.argmax(dim=1))
                 
-        running_loss += loss.item() * inputs.size(0)
-        running_corrects += torch.sum(labels.argmax(dim=1) == outputs.argmax(dim=1))
+        running_loss += batch_loss
+        running_corrects += batch_corrects
+
+        if idx % 100 == 1:
+            print('[Train]Epoch: {}, idx: {}, Loss: {:.4f} Acc: {:.4f}'.format(epoch, idx, batch_loss/len(inputs), batch_corrects/len(inputs)))
 
     epoch_loss = running_loss / len(tr_dataloader.dataset)
     epoch_acc = running_corrects.double() / len(tr_dataloader.dataset)
