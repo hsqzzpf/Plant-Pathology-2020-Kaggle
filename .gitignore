@@ -2,3 +2,4 @@ data/
 code/.ipynb_checkpoints/
 code/__*
 .DS_Store
+*.pyc

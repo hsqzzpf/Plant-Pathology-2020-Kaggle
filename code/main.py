@@ -234,14 +234,16 @@ if __name__ == "__main__":
 #         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
 #         ])
 # }
+    print("ss")
     device = get_device()
     model, _ = init_model(model_idx, num_classes, use_pretrained=options.pre_train)
+    print("ssss")
     feature_center = torch.zeros(4, 32 * model.num_features).to(device)
     criterion = get_loss_fn()
     # optimizer = torch.optim.AdamW(model.parameters(), lr = 2e-5, eps = 1e-8 )
     optimizer = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0.9, weight_decay=1e-5)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=2, gamma=0.95)
-
+    print("ddS")
 
     tr_df_all = pd.read_csv(train_csv_path)
     tr_df, val_df = train_test_split(tr_df_all, test_size = 0.4)

@@ -8,24 +8,11 @@ from torchvision import transforms
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-import config
 from models import WSDAN
-from datasets import get_trainval_datasets
-from utils import TopKAccuracyMetric, batch_augment
 
 from PIL import Image
+from utils import CenterLoss, AverageMeter, TopKAccuracyMetric, ModelCheckpoint, batch_augment, get_transform
 
-# GPU settings
-assert torch.cuda.is_available()
-os.environ['CUDA_VISIBLE_DEVICES'] = config.GPU
-device = torch.device("cuda")
-torch.backends.cudnn.benchmark = True
-
-# visualize
-visualize = config.visualize
-savepath = config.eval_savepath
-if visualize:
-    os.makedirs(savepath, exist_ok=True)
 
 ToPILImage = transforms.ToPILImage()
 MEAN = torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1)
@@ -43,13 +30,13 @@ def generate_heatmap(attention_maps):
 
 def predict(image_path, model_param_path, save_path, img_save_name, resize=(224,224), gen_hm=False):
     image = Image.open(image_path).convert('RGB')
-    transforms = transforms.Compose([
+    transform = transforms.Compose([
             transforms.Resize(size=(int(resize[0] / 0.875), int(resize[1] / 0.875))),
             transforms.CenterCrop(resize),
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         ])
-    image = transforms(image)
+    image = transform(image)
     image = image.unsqueeze(0)
 
     net = WSDAN(num_classes=4)
@@ -70,6 +57,9 @@ def predict(image_path, model_param_path, save_path, img_save_name, resize=(224,
 
     # WS-DAN
     y_pred_raw, _, attention_maps = net(X)
+    print("sss")
+    attention_maps = torch.mean(attention_maps, dim=1, keepdim=True)
+    print(attention_maps.shape)
 
     # Augmentation with crop_mask
     crop_image = batch_augment(X, attention_maps, mode='crop', theta=0.1, padding_ratio=0.05)
@@ -88,12 +78,20 @@ def predict(image_path, model_param_path, save_path, img_save_name, resize=(224,
         # raw_image, heat_attention, raw_attention
         raw_image = X.cpu() * STD + MEAN
         heat_attention_image = raw_image * 0.5 + heat_attention_maps * 0.5
+        print(raw_image.shape)
+        print(attention_maps.shape)
         raw_attention_image = raw_image * attention_maps
 
         for batch_idx in range(X.size(0)):
             rimg = ToPILImage(raw_image[batch_idx])
             raimg = ToPILImage(raw_attention_image[batch_idx])
             haimg = ToPILImage(heat_attention_image[batch_idx])
-            rimg.save(os.path.join(savepath, '{}_raw.jpg'.format(img_save_name)))
-            raimg.save(os.path.join(savepath, '{}_raw_atten.jpg'.format(img_save_name)))
-            haimg.save(os.path.join(savepath, '{}_heat_atten.jpg'.format(img_save_name)))
+            rimg.save(os.path.join(save_path, '{}_raw.jpg'.format(img_save_name)))
+            raimg.save(os.path.join(save_path, '{}_raw_atten.jpg'.format(img_save_name)))
+            haimg.save(os.path.join(save_path, '{}_heat_atten.jpg'.format(img_save_name)))
+    return y_pred
+
+if __name__ == "__main__":
+    image_path = "/Users/wangtianduo/Desktop/Term7/50.039/big proj/data/images/Test_15.jpg"
+    model_param_path = "/Users/wangtianduo/Desktop/Term7/50.039/big proj/output/lala[cpu].pkl"
+    print(predict(image_path, model_param_path, ".", "lala", resize=(224,224), gen_hm=True))
