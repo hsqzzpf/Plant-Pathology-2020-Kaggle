@@ -38,8 +38,22 @@ def get_parser():
 
     parser.add_argument('--input_size',
                         type=int,
-                        help='output file holder for submission csv',
+                        help='input image size',
                         default=448)
 
+    parser.add_argument('--output_name',
+                        type=str,
+                        help='output name for both submission and model',
+                        default="lala")
+
+    parser.add_argument('--model_addr',
+                        type=str,
+                        help='gpu or cpu',
+                        default='cpu')
+
+    parser.add_argument('--pre_train',
+                        type=bool,
+                        help='',
+                        default=True)
 
     return parser

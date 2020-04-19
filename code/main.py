@@ -184,7 +184,7 @@ def write_csv(model, te_dataset, submission_df_path, options=None):
     test_pred = torch.softmax(test_pred, dim=1, dtype=float)
     submission_df[['healthy', 'multiple_diseases', 'rust', 'scab']] = test_pred
 
-    submission_df.to_csv(options.output_root+'submission.csv', index=False)
+    submission_df.to_csv(options.output_root+options.output_name+'.csv', index=False)
 
 
 
@@ -228,7 +228,7 @@ if __name__ == "__main__":
 #         ])
 # }
     device = get_device()
-    model, _ = init_model(model_idx, num_classes, use_pretrained=True)
+    model, _ = init_model(model_idx, num_classes, use_pretrained=options.pre_train)
     feature_center = torch.zeros(4, 32 * model.num_features).to(device)
     criterion = get_loss_fn()
     # optimizer = torch.optim.AdamW(model.parameters(), lr = 2e-5, eps = 1e-8 )
@@ -267,7 +267,10 @@ if __name__ == "__main__":
     for i in range(5):
         train(model, val_dataloader, criterion, optimizer, i, options, feature_center)
     out_root = options.output_root
-    torch.save(model.state_dict(), out_root + 'params.pkl')
 
     write_csv(model, te_dataset, submission_df_path, options)
+    if options.model_addr == 'cpu':
+        devic = torch.device("cpu")
+        model.to(devic)
+    torch.save(model.state_dict(), out_root+options.output_name+'['+options.model_addr+']'+'.pkl')
 
