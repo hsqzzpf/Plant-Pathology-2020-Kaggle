@@ -7,6 +7,7 @@ import torch.nn.functional as F
 from torchvision import transforms
 from torch.utils.data import DataLoader
 from tqdm import tqdm
+import pandas as pd
 
 from models import WSDAN
 
@@ -78,8 +79,8 @@ def predict(image_path, model_param_path, save_path, img_save_name, resize=(224,
         # raw_image, heat_attention, raw_attention
         raw_image = X.cpu() * STD + MEAN
         heat_attention_image = raw_image * 0.5 + heat_attention_maps * 0.5
-        print(raw_image.shape)
-        print(attention_maps.shape)
+        # print(raw_image.shape)
+        # print(attention_maps.shape)
         raw_attention_image = raw_image * attention_maps
 
         for batch_idx in range(X.size(0)):
@@ -89,9 +90,15 @@ def predict(image_path, model_param_path, save_path, img_save_name, resize=(224,
             rimg.save(os.path.join(save_path, '{}_raw.jpg'.format(img_save_name)))
             raimg.save(os.path.join(save_path, '{}_raw_atten.jpg'.format(img_save_name)))
             haimg.save(os.path.join(save_path, '{}_heat_atten.jpg'.format(img_save_name)))
-    return y_pred
+
+    df = pd.read_csv("../data/train.csv")
+    for i in range(len(df)):
+        if df.loc[i, 'image_id'] in image_path:
+            label = torch.tensor(df.loc[i, ['healthy', 'multiple_diseases', 'rust', 'scab']])
+            break
+    return y_pred, label
 
 if __name__ == "__main__":
-    image_path = "/Users/wangtianduo/Desktop/Term7/50.039/big proj/data/images/Test_15.jpg"
+    image_path = "/Users/wangtianduo/Desktop/Term7/50.039/big proj/data/images/Train_15.jpg"
     model_param_path = "/Users/wangtianduo/Desktop/Term7/50.039/big proj/output/lala[cpu].pkl"
     print(predict(image_path, model_param_path, ".", "lala", resize=(224,224), gen_hm=True))
