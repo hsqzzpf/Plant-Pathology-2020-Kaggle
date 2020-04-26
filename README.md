@@ -7,10 +7,25 @@
 3. goto `code/`, then  
     `$ python3 main.py` for training.  
     `$ python3 GUI.py` to start GUI and start evaluation and visualization.  
+    <div align="left">
+    <img src="./ReadmeImages/initial_screenshot.png" height="300px" alt="initial" >
+    <img src="./ReadmeImages/pick_screenshot.png" height="300px" alt="pick image" >
+    <img src="./ReadmeImages/predict_screenshot.png" height="300px" alt="predict" >
+    </div>
+    <!-- ![initial](ReadmeImages/initial_screenshot.png)
+    ![pick](ReadmeImages/pick_screenshot.png)
+    ![predict](ReadmeImages/predict_screenshot.png) -->
 
 ## Attention Maps Visualization  
 
 Code in `code/eval.py` helps generate attention maps. (croped image, Heat attention map, Image x Attention map)  
-![](./code/images_output/Train_6.jpg_raw.jpg)  
-![](./code/images_output/Train_6.jpg_heat_atten.jpg)
-![](./code/images_output/Train_6.jpg_raw_atten.jpg)
+
+<div align="center">
+<img src="./ReadmeImages/raw.jpg" height="200px" alt="Raw" >
+<img src="./ReadmeImages/heat_atten.jpg" height="200px" alt="Heat" >
+<img src="./ReadmeImages/raw_atten.jpg" height="200px" alt="Atten" >
+</div>
+
+<!-- ![](./ReadmeImages/raw.jpg)  
+![](./ReadmeImages/heat_atten.jpg)
+![](./ReadmeImages/raw_atten.jpg) -->
