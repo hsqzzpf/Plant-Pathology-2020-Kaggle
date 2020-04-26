@@ -43,7 +43,7 @@ class HardWorkThread(QThread):
 
 class GUIWindow(QWidget):
 
-	def __init__(self, model_predict_function, model_param_path="../output/PlantPathologyModel[cpu].pkl", images_path="./images", save_path="./images_output"):
+	def __init__(self, model_predict_function, model_param_path="../output/lala[cpu].pkl", images_path="./images", save_path="./images_output"):
 		super().__init__()
 		self.model_predict_function = model_predict_function
 		self.model_param_path = model_param_path
