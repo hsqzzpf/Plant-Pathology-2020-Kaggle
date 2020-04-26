@@ -29,3 +29,9 @@ Code in `code/eval.py` helps generate attention maps. (croped image, Heat attent
 <!-- ![](./ReadmeImages/raw.jpg)  
 ![](./ReadmeImages/heat_atten.jpg)
 ![](./ReadmeImages/raw_atten.jpg) -->
+
+## Loss graph  
+
+<div align="center">
+<img src="./ReadmeImages/train_figure.png" height="500px" alt="loss accuracy graph" >
+</div>
