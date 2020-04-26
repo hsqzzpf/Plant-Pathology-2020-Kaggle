@@ -57,7 +57,8 @@ class BAP(nn.Module):
 
 # WS-DAN: Weakly Supervised Data Augmentation Network for FGVC
 class WSDAN(nn.Module):
-    def __init__(self, num_classes, M=32, net='inception_mixed_6e', pretrained=False):
+    # def __init__(self, num_classes, M=32, net='inception_mixed_6e', pretrained=False):
+    def __init__(self, num_classes, M=32, net='resnet34', pretrained=False):
         super(WSDAN, self).__init__()
         self.num_classes = num_classes
         self.M = M

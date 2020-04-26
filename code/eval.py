@@ -32,8 +32,9 @@ def generate_heatmap(attention_maps):
 def predict(image_path, model_param_path, save_path, img_save_name, resize=(224,224), gen_hm=False):
     image = Image.open(image_path).convert('RGB')
     transform = transforms.Compose([
-            transforms.Resize(size=(int(resize[0] / 0.875), int(resize[1] / 0.875))),
-            transforms.CenterCrop(resize),
+            # transforms.Resize(size=(int(resize[0] / 0.875), int(resize[1] / 0.875))),
+            transforms.Resize(size=(int(resize[0]), int(resize[1]))),
+            # transforms.CenterCrop(resize),
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         ])
@@ -42,6 +43,7 @@ def predict(image_path, model_param_path, save_path, img_save_name, resize=(224,
 
     net = WSDAN(num_classes=4)
     net.load_state_dict(torch.load(model_param_path))
+    net.eval()
 
     if 'gpu' in model_param_path:
         print("please make sure your computer has a GPU")
@@ -67,6 +69,7 @@ def predict(image_path, model_param_path, save_path, img_save_name, resize=(224,
 
     y_pred_crop, _, _ = net(crop_image)
     y_pred = (y_pred_raw + y_pred_crop) / 2.
+    y_pred = F.softmax(y_pred)
 
     if gen_hm:
 
@@ -78,7 +81,7 @@ def predict(image_path, model_param_path, save_path, img_save_name, resize=(224,
 
         # raw_image, heat_attention, raw_attention
         raw_image = X.cpu() * STD + MEAN
-        heat_attention_image = raw_image * 0.5 + heat_attention_maps * 0.5
+        heat_attention_image = raw_image * 0.4 + heat_attention_maps * 0.6
         # print(raw_image.shape)
         # print(attention_maps.shape)
         raw_attention_image = raw_image * attention_maps
@@ -93,7 +96,9 @@ def predict(image_path, model_param_path, save_path, img_save_name, resize=(224,
 
     df = pd.read_csv("../data/train.csv")
     for i in range(len(df)):
-        if df.loc[i, 'image_id'] in image_path:
+        # if df.loc[i, 'image_id'] in image_path:
+        head, tail = os.path.split(image_path)
+        if df.loc[i, 'image_id'] == tail[:-4]:
             label = torch.tensor(df.loc[i, ['healthy', 'multiple_diseases', 'rust', 'scab']])
             break
     return y_pred, label

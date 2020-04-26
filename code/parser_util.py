@@ -5,16 +5,11 @@ import argparse
 
 def get_parser():
     parser = argparse.ArgumentParser()
-    
-    parser.add_argument('--model',
-                        type=int,
-                        help='models to choose',
-                        default=4)
 
     parser.add_argument('--batch_size',
                         type=int,
                         help='batch_size',
-                        default=32)
+                        default=16)
 
     parser.add_argument('--data_root',
                         type=str,
@@ -39,7 +34,7 @@ def get_parser():
     parser.add_argument('--input_size',
                         type=int,
                         help='input image size',
-                        default=448)
+                        default=224)
 
     parser.add_argument('--output_name',
                         type=str,

@@ -29,6 +29,7 @@ class HardWorkThread(QThread):
 	def run(self):
 		try:
 			raw_y_pred, raw_true_label = self.hard_function(*self.args, **self.kwargs)
+			print(f"raw_y_pred:{raw_y_pred}\nraw_true_label:{raw_true_label}")
 			y_pred = {CATEGORIES[i]:float(raw_y_pred[0][i]) for i in range(len(raw_y_pred[0]))}
 			true_label = None
 			for i in range(len(raw_true_label)):
@@ -275,8 +276,8 @@ if __name__ == '__main__':
 
 	app = QApplication(sys.argv)
 	showUpWindow = GUIWindow(predict,
-		# model_param_path="../output/lala[cpu].pkl",
-		model_param_path="../output/PlantPathologyModel[cpu].pkl",
+		model_param_path="../output/lala[cpu].pkl",
+		# model_param_path="../output/PlantPathologyModel[cpu].pkl",
 		images_path="../data/sample_img",
 		save_path="./images_output")
 	sys.exit(app.exec_())

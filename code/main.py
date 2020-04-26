@@ -18,6 +18,7 @@ from dataset import ppDataset
 from parser_util import get_parser
 from utils import CenterLoss, AverageMeter, TopKAccuracyMetric, ModelCheckpoint, batch_augment, get_transform
 
+import matplotlib.pyplot as plt
 
 cross_entropy_loss = nn.CrossEntropyLoss()
 center_loss = CenterLoss()
@@ -197,7 +198,7 @@ def write_csv(model, te_dataset, submission_df_path, options=None):
 
 if __name__ == "__main__":
     options = get_parser().parse_args()
-    model_idx = options.model
+    # model_idx = options.model
     batch_size = options.batch_size
     num_epoch = options.epochs
     data_root = options.data_root
@@ -236,7 +237,7 @@ if __name__ == "__main__":
 # }
     print("ss")
     device = get_device()
-    model, _ = init_model(model_idx, num_classes, use_pretrained=options.pre_train)
+    model, _ = init_model(num_classes, use_pretrained=options.pre_train)
     print("ssss")
     feature_center = torch.zeros(4, 32 * model.num_features).to(device)
     criterion = get_loss_fn()
@@ -246,7 +247,7 @@ if __name__ == "__main__":
     print("ddS")
 
     tr_df_all = pd.read_csv(train_csv_path)
-    tr_df, val_df = train_test_split(tr_df_all, test_size = 0.4)
+    tr_df, val_df = train_test_split(tr_df_all, test_size = 0.2)
     val_df = val_df.reset_index(drop=True)
     tr_df = tr_df.reset_index(drop=True)
     te_df = pd.read_csv(test_csv_path)
@@ -255,8 +256,8 @@ if __name__ == "__main__":
     val_dataset = ppDataset(val_df, images_dir, return_labels = True, transforms = get_transform((input_size,input_size), "val"))
     te_dataset = ppDataset(te_df, images_dir, return_labels = False, transforms = get_transform((input_size,input_size), "test"))
     
-    tr_dataloader = DataLoader(tr_dataset, batch_size=batch_size, shuffle=True)
-    val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True)
+    tr_dataloader = DataLoader(tr_dataset, batch_size=batch_size, shuffle=True, num_workers=8)
+    val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True, num_workers=8)
     
     train_loss_ls = []
     valid_loss_ls = []
@@ -277,9 +278,29 @@ if __name__ == "__main__":
         train(model, val_dataloader, criterion, optimizer, i, options, feature_center)
     out_root = options.output_root
 
-    write_csv(model, te_dataset, submission_df_path, options)
+    plt.figure(12)
+    plt.subplot(1, 2, 1)
+    plt.plot(train_loss_ls)
+    plt.plot(valid_loss_ls)
+
+    plt.xlabel("epochs")
+    plt.ylabel("loss")
+
+    plt.subplot(1, 2, 2)
+    plt.plot(train_accu_ls)
+    plt.plot(valid_accu_ls)
+
+    plt.xlabel("epochs")
+    plt.ylabel("accuracy")
+
+    plt.savefig("train_figure.png")
+    # plt.show()
+
+    
     if options.model_addr == 'cpu':
         devic = torch.device("cpu")
         model.to(devic)
     torch.save(model.state_dict(), out_root+options.output_name+'['+options.model_addr+']'+'.pkl')
+
+
 
