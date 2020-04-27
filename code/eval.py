@@ -60,9 +60,7 @@ def predict(image_path, model_param_path, save_path, img_save_name, resize=(224,
 
     # WS-DAN
     y_pred_raw, _, attention_maps = net(X)
-    print("sss")
     attention_maps = torch.mean(attention_maps, dim=1, keepdim=True)
-    print(attention_maps.shape)
 
     # Augmentation with crop_mask
     crop_image = batch_augment(X, attention_maps, mode='crop', theta=0.1, padding_ratio=0.05)
@@ -82,8 +80,6 @@ def predict(image_path, model_param_path, save_path, img_save_name, resize=(224,
         # raw_image, heat_attention, raw_attention
         raw_image = X.cpu() * STD + MEAN
         heat_attention_image = raw_image * 0.4 + heat_attention_maps * 0.6
-        # print(raw_image.shape)
-        # print(attention_maps.shape)
         raw_attention_image = raw_image * attention_maps
 
         for batch_idx in range(X.size(0)):

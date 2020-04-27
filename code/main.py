@@ -27,10 +27,7 @@ center_loss = CenterLoss()
 def get_device():
     if torch.cuda.is_available():
         device = torch.device("cuda")
-        # print('There are %d GPU(s) available.' % torch.cuda.device_count())
-        # print('We will use the GPU:', torch.cuda.get_device_name(0))
     else:
-        # print('No GPU available, using the CPU instead.')
         device = torch.device("cpu")
     return device
 
@@ -51,43 +48,35 @@ def train(model, tr_dataloader, criterion, optimizer, epoch, options=None,featur
         optimizer.zero_grad()
         model.zero_grad()
 
-        if options is not None and options.model==4:
-            y_pred_raw, feature_matrix, attention_map = model(inputs)
-
-            # Update Feature Center
+        y_pred_raw, feature_matrix, attention_map = model(inputs)
             
-           # if len(labels.shape
-            feature_center_batch = F.normalize(feature_center[labels], dim=-1)
-            feature_center[labels] += 0.05 * (feature_matrix.detach() - feature_center_batch)
+        # if len(labels.shape
+        feature_center_batch = F.normalize(feature_center[labels], dim=-1)
+        feature_center[labels] += 0.05 * (feature_matrix.detach() - feature_center_batch)
 
-            ##################################
-            # Attention Cropping
-            ##################################
-            with torch.no_grad():
-                crop_images = batch_augment(inputs, attention_map[:, :1, :, :], mode='crop', theta=(0.4, 0.6), padding_ratio=0.1)
+        ##################################
+        # Attention Cropping
+        ##################################
+        with torch.no_grad():
+            crop_images = batch_augment(inputs, attention_map[:, :1, :, :], mode='crop', theta=(0.4, 0.6), padding_ratio=0.1)
 
-            # crop images forward
-            y_pred_crop, _, _ = model(crop_images)
+        # crop images forward
+        y_pred_crop, _, _ = model(crop_images)
 
-            ##################################
-            # Attention Dropping
-            ##################################
-            with torch.no_grad():
-                drop_images = batch_augment(inputs, attention_map[:, 1:, :, :], mode='drop', theta=(0.2, 0.5))
+        ##################################
+        # Attention Dropping
+        ##################################
+        with torch.no_grad():
+            drop_images = batch_augment(inputs, attention_map[:, 1:, :, :], mode='drop', theta=(0.2, 0.5))
 
-            # drop images forward
-            y_pred_drop, _, _ = model(drop_images)
-            outputs = (y_pred_raw + y_pred_crop + y_pred_drop)/3.
-            # loss
-            loss = cross_entropy_loss(y_pred_raw, labels) / 3. + \
-                         cross_entropy_loss(y_pred_crop, labels) / 3. + \
-                         cross_entropy_loss(y_pred_drop, labels) / 3. + \
-                         center_loss(feature_matrix, feature_center_batch)
-        else:
-
-            outputs = model(inputs)
-            loss = criterion(outputs, labels)
-            _, preds = torch.max(outputs, 1)
+        # drop images forward
+        y_pred_drop, _, _ = model(drop_images)
+        outputs = (y_pred_raw + y_pred_crop + y_pred_drop)/3.
+        # loss
+        loss = cross_entropy_loss(y_pred_raw, labels) / 3. + \
+                    cross_entropy_loss(y_pred_crop, labels) / 3. + \
+                    cross_entropy_loss(y_pred_drop, labels) / 3. + \
+                    center_loss(feature_matrix, feature_center_batch)
 
         loss.backward()
         optimizer.step()
@@ -124,27 +113,18 @@ def validation(model, val_dataloader, criterion, epoch, options=None):
                     
             model.zero_grad()
 
-            if options is not None and options.model==4:
+            y_pred_raw, _, attention_map = model(inputs)
 
-                y_pred_raw, _, attention_map = model(inputs)
+            crop_images = batch_augment(inputs, attention_map, mode='crop', theta=0.1, padding_ratio=0.05)
+            y_pred_crop, _, _ = model(crop_images)
 
-                crop_images = batch_augment(inputs, attention_map, mode='crop', theta=0.1, padding_ratio=0.05)
-                y_pred_crop, _, _ = model(crop_images)
-
-                y_pred = (y_pred_raw + y_pred_crop) / 2.
-                outputs = y_pred
-                #print("label shape: {}".format(len(labels.shape)))
-                if len(labels.shape) == 0:
-                    print("Error")
-                 
-                    loss = torch.tensor(0)
-                else:
-                    loss = cross_entropy_loss(y_pred, labels)
+            y_pred = (y_pred_raw + y_pred_crop) / 2.
+            outputs = y_pred
+            if len(labels.shape) == 0:
+                print("Error")
+                loss = torch.tensor(0)
             else:
-
-                outputs = model(inputs)
-                loss = criterion(outputs, labels)
-                _, preds = torch.max(outputs, 1)
+                loss = cross_entropy_loss(y_pred, labels)
 
 
                     
@@ -212,39 +192,14 @@ if __name__ == "__main__":
     num_classes = 4
     num_cv_folds = 5
 
-#     data_transforms = {
-#     'train': transforms.Compose([
-#         transforms.Resize((224, 224)),
-#         transforms.Pad(50, padding_mode='reflect'),        
-#         transforms.RandomHorizontalFlip(p=0.5),
-#         transforms.RandomVerticalFlip(p=0.5),
-#         transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.05, hue=0.05),
-#         transforms.RandomAffine(degrees=[0,45]),
-#         transforms.CenterCrop(224),
-#         transforms.ToTensor(),
-#         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-#         ]),
-#     'val': transforms.Compose([
-#         transforms.Resize((224, 244)),
-#         transforms.ToTensor(),
-#         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
-#         ]),
-#     'test': transforms.Compose([
-#         transforms.Resize((224, 244)),
-#         transforms.ToTensor(),
-#         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
-#         ])
-# }
-    print("ss")
     device = get_device()
     model, _ = init_model(num_classes, use_pretrained=options.pre_train)
-    print("ssss")
+
     feature_center = torch.zeros(4, 32 * model.num_features).to(device)
     criterion = get_loss_fn()
-    # optimizer = torch.optim.AdamW(model.parameters(), lr = 2e-5, eps = 1e-8 )
+    
     optimizer = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0.9, weight_decay=1e-5)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=2, gamma=0.95)
-    print("ddS")
 
     tr_df_all = pd.read_csv(train_csv_path)
     tr_df, val_df = train_test_split(tr_df_all, test_size = 0.2)
